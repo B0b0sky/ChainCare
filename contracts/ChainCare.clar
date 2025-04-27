@@ -69,12 +69,13 @@
 )
 
 (define-public (revoke-provider-access (provider-id principal))
-  (let ((caller tx-sender))
+  (let ((caller tx-sender)
+        (current-height (unwrap-panic (get-block-info? height u0))))
     (asserts! (is-some (map-get? patients {patient-id: caller})) ERR_NOT_REGISTERED)
     (asserts! (is-some (map-get? provider-access {patient-id: caller, provider-id: provider-id})) ERR_NOT_AUTHORIZED)
     (ok (map-set provider-access 
       {patient-id: caller, provider-id: provider-id} 
-      {authorized: false, last-access: (get-block-height)}))
+      {authorized: false, last-access: current-height}))
   )
 )
 
@@ -100,11 +101,12 @@
 
 (define-public (access-patient-record (patient-id principal))
   (let ((caller tx-sender)
-        (access-info (unwrap! (map-get? provider-access {patient-id: patient-id, provider-id: caller}) ERR_NOT_AUTHORIZED)))
+        (access-info (unwrap! (map-get? provider-access {patient-id: patient-id, provider-id: caller}) ERR_NOT_AUTHORIZED))
+        (current-height (unwrap-panic (get-block-info? height u0))))
     (asserts! (get authorized access-info) ERR_UNAUTHORIZED)
     (map-set provider-access 
       {patient-id: patient-id, provider-id: caller} 
-      (merge access-info {last-access: (get-block-height)}))
+      (merge access-info {last-access: current-height}))
     (ok (get data-hash (unwrap! (map-get? patients {patient-id: patient-id}) ERR_NOT_REGISTERED)))
   )
 )
